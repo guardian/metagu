@@ -25,10 +25,12 @@ function readKey(key) {
 
 export function readConfig() {
     return {
-        twitterHandle:            readKey("TWITTER_HANDLE"),
-        twitterConsumerKey:       readKey("TWITTER_CONSUMER_KEY"),
-        twitterConsumerSecret:    readKey("TWITTER_CONSUMER_SECRET"),
-        twitterAccessTokenKey:    readKey("TWITTER_ACCESS_TOKEN_KEY"),
-        twitterAccessTokenSecret: readKey("TWITTER_ACCESS_TOKEN_SECRET")
+        twitterHandle:            readKey('TWITTER_HANDLE'),
+        twitterConsumerKey:       readKey('TWITTER_CONSUMER_KEY'),
+        twitterConsumerSecret:    readKey('TWITTER_CONSUMER_SECRET'),
+        twitterAccessTokenKey:    readKey('TWITTER_ACCESS_TOKEN_KEY'),
+        twitterAccessTokenSecret: readKey('TWITTER_ACCESS_TOKEN_SECRET'),
+        capiApiKey:               readKey('CAPI_API_KEY'),
+        capiBaseUri:              readKey('CAPI_BASE_URI')
     };
 }
