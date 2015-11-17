@@ -10,6 +10,7 @@ System.config({
   map: {
     "extend": "npm:extend@3.0.0",
     "fs": "github:jspm/nodelibs-fs@0.1.2",
+    "http": "github:jspm/nodelibs-http@1.7.1",
     "moment": "npm:moment@2.10.6",
     "request": "npm:request@2.65.0",
     "rx": "npm:rx@4.0.7",

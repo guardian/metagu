@@ -67,3 +67,19 @@ function post(recipient, message, replyTweetId) {
         );
     });
 }
+
+
+// Dummy HTTP server to keep alive on heroku
+
+import http from 'http';
+
+const PORT = process.env.PORT || 5000;
+
+var server = http.createServer(function(request, response) {
+    response.writeHead(200, {"Content-Type": "text/html"});
+    response.write('hello there');
+    response.end();
+});
+
+server.listen(PORT);
+console.log(`HTTP server listening on ${PORT}`);
