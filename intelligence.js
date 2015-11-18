@@ -162,7 +162,8 @@ function ellipsise(text, maxLen) {
         // Hacky way to cut off enough utf-8 chars, since slice doesn't know utf-8
         const brutalUtf8Diff = byteCount(text) - text.length;
         // FIXME: cut whitespace, not words
-        const maxText = text.slice(0, maxLen - 1 - brutalUtf8Diff);
+        const ellipsisLen = byteCount('…');
+        const maxText = text.slice(0, maxLen - ellipsisLen - brutalUtf8Diff);
         return `${maxText}…`;
     }
 }
