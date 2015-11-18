@@ -6,12 +6,7 @@ import extend from 'extend';
 const just = Rx.Observable.just;
 const justThrow = Rx.Observable.throw;
 
-function choose(options) {
-    const randIndex = Math.floor(Math.random() * options.length);
-    return options[randIndex];
-}
-
-function respond(input) {
+export function respond(input) {
 
     // TODO: this shouldn't be necessary, could be losing real information
     input = input.
@@ -57,18 +52,13 @@ function respond(input) {
         }
     }
     // TODO: "deerhunter review"
-    // TODO: "review of the last __ album"
-    // TODO: "review of the last __ film"
-    // TODO: "review of the last film by __"
-    // TODO: "review of the last film with __"
-    // TODO: "review of the last film starring __"
     if ((m = input.match(/review of (.+)/))) {
         const [, what] = m;
         return lookupThing(what)
             .flatMap(entities => {
                 // FIXME: filter reviewable entities (album, film, book)
                 // FIXME: pick best/first?
-                console.log(entities)
+                // console.log(entities)
                 const bestEntity = entities[0]
                 // TODO: filter if in headline?
                 if (bestEntity) {
@@ -79,8 +69,7 @@ function respond(input) {
                     }[bestEntity.kind] || [];
                     return findContent({
                         tag: ['tone/reviews'].concat(extraTagFilter).join(','),
-                        // TODO: quote?
-                        q: entities[0].name
+                        q: quote(entities[0].name)
                     });
                 } else {
                     // ???
@@ -99,23 +88,20 @@ function respond(input) {
             })
         // TODO: recover
     }
-    if ((m = input.match(/an? (.+) recipe with (.+)/))) {
+    if ((m = input.match(/an? (?:(.+) )?recipe with (.+)/))) {
         const [, author, ingredientsString] = m;
         const ingredients = ingredientsString.split(/(?:, +| +and +)/);
-        return findContributors(author)
-            .flatMap(response => {
-                const contributors = response.results;
+        const contributorsReq = author ?
+              findContributors(author).map(resp => resp.results) :
+              just([]);
+        return contributorsReq
+            .flatMap(contributors => {
                 const bestContributor = contributors[0]
-                if (bestContributor) {
-                    return findContent({
-                        tag: ['tone/recipes', bestContributor.id].join(','),
-                        // TODO: quote?
-                        q: ingredients.join(' AND ')
-                    });
-                } else {
-                    // ???
-                    return justThrow('XXX');
-                }
+                const extraTagFilter = bestContributor ? [bestContributor.id] : [];
+                return findContent({
+                    tag: ['tone/recipes'].concat(extraTagFilter).join(','),
+                    q: ingredients.map(quote).join(' AND ')
+                });
             }).map(response => {
                 const contentList = response.results;
                 const bestResult = contentList[0]
@@ -124,6 +110,7 @@ function respond(input) {
                     return `${webTitle} ${webUrl}`;
                 } else {
                     // FIXME: nothing found
+                    return `I'm afraid I didn't find any matching recipe`;
                 }
             })
         // TODO: recover
@@ -136,6 +123,12 @@ function respond(input) {
         const [, who] = m;
         return explainPerson(who);
     }
+
+    if ((m = input.match(/(?:follow|subscribe to) (.+)/))) {
+        const [, subject] = m;
+        // TODO: parse subject, record in storage, listen to CAPI feed, post on match
+        return just(`following ${subject} isn't supported just yet, I'm afraid`);
+    }
     // TODO: last article/opinion piece by
     // TODO: give me something funny, sad
     // TODO: how many, facts
@@ -143,7 +136,15 @@ function respond(input) {
 
     // TODO: here for fun or business? more browsing
 
+    // TODO: spontaneous: reply to tweet about X, Y
+    // TODO: spontaneous: tweet if following @artist
+
     return just('sorry, I didn\'t get that');
+}
+
+function choose(options) {
+    const randIndex = Math.floor(Math.random() * options.length);
+    return options[randIndex];
 }
 
 function explainConcept(concept) {
@@ -182,50 +183,152 @@ function rxParseXml(xmlString) {
 
 const DBPEDIA_SPARQL_URI = 'http://live.dbpedia.org/sparql';
 
-function lookupPeople(people) {
-    const normalisedPeople = escapeDoubleQuote(people.toLowerCase());
-    return rxRequest({
-        uri: DBPEDIA_SPARQL_URI,
-        qs: {
-            query: `
-PREFIX dbo: <http://dbpedia.org/ontology/>
-PREFIX dbp: <http://dbpedia.org/property/>
+// function lookupPeople(people) {
+//     const normalisedPeople = escapeDoubleQuote(people.toLowerCase());
+//     return rxRequest({
+//         uri: DBPEDIA_SPARQL_URI,
+//         qs: {
+//             query: `
+// PREFIX dbo: <http://dbpedia.org/ontology/>
+// PREFIX dbp: <http://dbpedia.org/property/>
 
-SELECT DISTINCT ?people ?type
-WHERE {
-  ?people dbp:name "${normalisedPeople}"@en.
-  ?people a ?type.
-  { ?people a dbo:Band } UNION
-  { ?people a dbo:MusicalArtist } UNION
-  { ?people a dbo:Writer }.
-}
-LIMIT 10`,
-            // FIXME: director?
-            format: 'json'
-        }
-    }).map(response => JSON.parse(response.body).results.bindings);
+// SELECT DISTINCT ?people ?type
+// WHERE {
+//   ?people dbp:name "${normalisedPeople}"@en.
+//   ?people a ?type.
+//   { ?people a dbo:Band } UNION
+//   { ?people a dbo:MusicalArtist } UNION
+//   { ?people a dbo:Writer }.
+// }
+// LIMIT 10`,
+//             // FIXME: director?
+//             format: 'json'
+//         }
+//     }).map(response => JSON.parse(response.body).results.bindings);
+// }
+
+
+const r = (pattern, flags = 'i') => new RegExp(pattern, flags);
+const gQualifier = '(last|latest|recent|new|best|first)';
+const gRelator = '(by|from|of|with|starring|featuring)';
+const gThingType = '(film|movie|album|release|book|novel)';
+
+function capitalise(str) {
+    return str.slice(0, 1).toUpperCase() + str.slice(1);
 }
 
+function normalisedKind(thingType) {
+    return {
+        film:    'film',
+        movie:   'film',
+        album:   'album',
+        release: 'album',
+        book:    'book',
+        novel:   'book'
+    }[thingType];
+}
+
+function normalisedRelation(rel) {
+    return {
+        by:        'by',
+        from:      'by',
+        of:        'by',
+        with:      'with',
+        starring:  'with',
+        featuring: 'with'
+    }[rel];
+}
+
+function parseThing(thing) {
+    let m;
+    // TODO: use and pass qualifier
+    // TODO: match with, starring, etc
+    if ((m = thing.match(r(`the ${gQualifier} ${gThingType} ${gRelator} (.+)`)))) {
+        return {
+            name: m[4],
+            relation: normalisedRelation(m[3]),
+            kind: normalisedKind(m[2])
+        };
+    } else if ((m = thing.match(r(`the ${gQualifier} (.+) ${gThingType}`)))) {
+        return {
+            name: m[2],
+            relation: 'by',
+            // TODO: ambiguous relation?
+            kind: normalisedKind(m[3])
+        };
+    } else if ((m = thing.match(r(`(.+)['’]s? ${gQualifier}? ${gThingType}`)))) {
+        return {
+            name: m[1],
+            relation: 'by',
+            // TODO: ambiguous relation?
+            kind: normalisedKind(m[3])
+        };
+    } else {
+        return {
+            name: thing,
+            relation: 'is'
+            // kind not known
+        };
+    }
+}
 
 function lookupThing(thing) {
-    const normalisedThing = escapeDoubleQuote(thing.toLowerCase());
-    return rxRequest({
-        uri: DBPEDIA_SPARQL_URI,
-        qs: {
-            query: `
+    const parsedThing = parseThing(thing);
+    const normalisedName = escapeDoubleQuote(parsedThing.name.toLowerCase());
+    let relClause;
+    if (parsedThing.relation === 'is') {
+        relClause = 'FILTER (sameTerm(?entity, ?thing))';
+    } else if (parsedThing.relation === 'by') {
+        let relation;
+        if (parsedThing.kind === 'film') {
+            relation = 'dbo:director';
+        } else if (parsedThing.kind === 'album') {
+            relation = 'dbo:artist';
+        } else if (parsedThing.kind === 'book') {
+            relation = 'dbo:author';
+        } else {
+            // should not reach
+            relation = 'dbo:creator';
+        }
+        relClause = `?thing ${relation} ?entity`;
+    } else if (parsedThing.relation === 'with') {
+        let relation;
+        if (parsedThing.kind === 'film') {
+            relation = 'dbo:starring';
+        } else if (parsedThing.kind === 'album') {
+            relation = 'dbo:artist';
+        } else if (parsedThing.kind === 'book') {
+            // weird, not expected
+            relation = 'dbo:author';
+        } else {
+            // should not reach
+            relation = 'dbo:creator';
+        }
+        relClause = `?thing ${relation} ?entity`;
+    }
+    const typeClause = parsedThing.kind ?
+          `{ ?thing a dbo:${capitalise(parsedThing.kind)} }` :
+          `{ ?thing a dbo:Film } UNION
+           { ?thing a dbo:Album } UNION
+           { ?thing a dbo:Book }`;
+    const query = `
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX dbp: <http://dbpedia.org/property/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 
 SELECT DISTINCT ?name ?thing ?type
 WHERE {
-  ?thing dbp:name ?name.
+  { ?entity dbp:name ?name } UNION { ?entity foaf:name ?name }.
   ?thing a ?type.
-  { ?thing a dbo:Film } UNION
-  { ?thing a dbo:Album } UNION
-  { ?thing a dbo:Book }.
-  FILTER (lcase(str(?name)) = "${normalisedThing}").
+  ${typeClause}.
+  ${relClause}.
+  FILTER (lcase(str(?name)) = "${normalisedName}").
 }
-LIMIT 30`,
+LIMIT 30`;
+    return rxRequest({
+        uri: DBPEDIA_SPARQL_URI,
+        qs: {
+            query: query,
             format: 'json'
         }
     }).map(response => {
@@ -265,8 +368,8 @@ LIMIT 30`,
                 uri:   result.uri,
                 types: result.types,
                 kind:  result.types.indexOf('http://dbpedia.org/ontology/Film') !== -1 ? 'film' :
-                    result.types.indexOf('http://dbpedia.org/ontology/Album') ? 'album' :
-                    result.types.indexOf('http://dbpedia.org/ontology/Book') ? 'book' : undefined
+                    result.types.indexOf('http://dbpedia.org/ontology/Album') !== -1 ? 'album' :
+                    result.types.indexOf('http://dbpedia.org/ontology/Book') !== -1 ? 'book' : undefined
             };
         });
     });
@@ -274,6 +377,10 @@ LIMIT 30`,
 
 function escapeDoubleQuote(str) {
     return str.replace(/"/g, '%22');
+}
+
+function quote(str) {
+    return `"${str}"`;
 }
 
 // function lookup(thing) {
@@ -330,7 +437,7 @@ function findContributors(name) {
         qs: extend({
             'api-key': CAPI_API_KEY,
             type: 'contributor',
-            q: name,
+            q: quote(name),
             limit: 3
             // FIXME: if multiple, find most popular..?
         })
@@ -353,43 +460,3 @@ function rxRequest(options) {
         });
     });
 }
-
-
-function test(input) {
-    const response = respond(input);
-    response.subscribe(
-        resp => {
-            console.log(input);
-            console.log(`>> ${resp}`);
-        },
-        error => {
-            console.log(input);
-            console.log(`!!!! ${error}`);
-        },
-        _ => {
-            console.log();
-        }
-    );
-}
-
-
-// TODO: lookup authors/etc the user follows, notify of reviews, interview etc
-// TODO: example of useful questions people ask
-// TODO: all reviews of books by X, best first
-
-test("hi!");
-test("what is the time?");
-test("2 + 2");
-test("2 / 0");
-test("-2 / 0");
-test("--2 / 0");
-test("give me a review of SPECTRE");
-test("give me a review of SPECTRE please");
-test("give me a review of the lobster");
-test("give me a review of fading frontier");
-test("give me a review of the peripheral by william gibson");
-test("give me a review of the last Chvrches album");
-test("do you have an ottolenghi recipe with lamb and pomegranate");
-test("who is bernie sanders?");
-test("what is daesh?");
-test("uh");
