@@ -102,7 +102,8 @@ export function respond(input) {
             })
         // TODO: recover
     }
-    if ((m = input.match(/ an? (?:(.+?) )?recipe with ([^?]+)/))) {
+    if ((m = input.match(/ an? (?:(.+?) )?recipe with ([^?]+)/)) ||
+        (m = input.match(/()how do I make ([^?]+)/i))) {
         const [, author, ingredientsString] = m;
         const ingredients = ingredientsString.split(/(?:, +| +and +)/);
         const contributorsReq = author ?
