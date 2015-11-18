@@ -80,7 +80,7 @@ export function respond(input) {
                 const bestResult = contentList[0]
                 if (bestResult) {
                     const {webTitle, webUrl} = bestResult;
-                    return `${webTitle} ${webUrl}`;
+                    return twitterLength(webTitle, webUrl);
                 } else {
                     // FIXME: nothing found
                     return 'sorry, I couldn\'t find anything for you'
@@ -107,7 +107,7 @@ export function respond(input) {
                 const bestResult = contentList[0]
                 if (bestResult) {
                     const {webTitle, webUrl} = bestResult;
-                    return `${webTitle} ${webUrl}`;
+                    return twitterLength(webTitle, webUrl);
                 } else {
                     // FIXME: nothing found
                     return `I'm afraid I didn't find any matching recipe`;
@@ -145,6 +145,27 @@ export function respond(input) {
 function choose(options) {
     const randIndex = Math.floor(Math.random() * options.length);
     return options[randIndex];
+}
+
+function ellipsise(text, maxLen) {
+    if (text.length <= maxLen) {
+        return text;
+    } else {
+        // FIXME: cut whitespace, not words
+        const maxText = text.slice(0, maxLen - 1);
+        return `${maxText}…`;
+    }
+}
+function twitterLength(text, uri) {
+    if (uri) {
+        const TWEET_LENGTH = 140;
+        const URI_LENGTH = 22;
+        const maxTextLen = TWEET_LENGTH - URI_LENGTH - 1;
+        const abbrevText = ellipsise(text, maxTextLen);
+        return `${abbrevText} ${uri}`;
+    } else {
+        return ellipsise(text, TWEET_LENGTH);
+    }
 }
 
 function explainConcept(concept) {
