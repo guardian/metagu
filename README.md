@@ -1,6 +1,7 @@
-# @metagu: prototype of a Guardian pseudo-AI
+# Prototype of a Guardian pseudo-AI
 
-A pseudo-AI bot interface to the Guardian, living on Twitter.
+A pseudo-AI bot interface to the Guardian, living on Twitter as
+[@metagu](https://twitter.com/metagu). You can talk to it there!
 
 Its goal is to explore a new way to interact with and think about our
 journalistic content, using dialogue in natural language. It also
