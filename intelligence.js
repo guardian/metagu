@@ -170,14 +170,16 @@ function ellipsise(text, maxLen) {
 
 const TWEET_LENGTH = 140;
 const URI_LENGTH = 22;
+const MAX_HANDLE_LENGTH = 15;
+const AVAILABLE_LENGTH = TWEET_LENGTH - MAX_HANDLE_LENGTH - 1 /* space */;
 
 function twitterLength(text, uri) {
     if (uri) {
-        const maxTextLen = TWEET_LENGTH - URI_LENGTH - 1;
+        const maxTextLen = AVAILABLE_LENGTH - URI_LENGTH - 1;
         const abbrevText = ellipsise(text, maxTextLen);
         return `${abbrevText} ${uri}`;
     } else {
-        return ellipsise(text, TWEET_LENGTH);
+        return ellipsise(text, AVAILABLE_LENGTH);
     }
 }
 
