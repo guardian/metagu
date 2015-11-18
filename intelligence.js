@@ -202,7 +202,7 @@ function explainConcept(concept) {
 function explainPerson(person) {
     // TODO: lookup in people store
     if (person.match(/bernie sanders/i)) {
-        return just('Bernard Sanders is an American Democrat and Senator from Vermont, candidate the 2016 U.S. election.');
+        return just('Bernard Sanders is an American Democrat and Senator from Vermont, candidate in the 2016 US election.');
     } else {
         return just('sorry I don\'t know');
     }
