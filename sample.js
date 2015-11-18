@@ -23,6 +23,8 @@ function test(input) {
 // TODO: all reviews of books by X, best first
 
 test("hi!");
+test("who are you?");
+test("who created you?");
 test("what is the time?");
 test("2 + 2");
 test("2 / 0");

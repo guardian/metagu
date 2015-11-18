@@ -34,6 +34,12 @@ export function respond(input) {
         ]);
         return just(nw);
     }
+    if (input.match(/(who|what) are you/)) {
+        return just(`I'm just a little pseudo-AI bot for the Guardian. I'm still learning!`);
+    }
+    if (input.match(/who (made|created|built|invented) you/)) {
+        return just(`.@theefer created me at a Guardian hack day in November 2015`);
+    }
     if (input.match(/what is the time/)) {
         const now = moment();
         const time = now.format('HH:mm');
@@ -202,7 +208,9 @@ function explainConcept(concept) {
 function explainPerson(person) {
     // TODO: lookup in people store
     if (person.match(/bernie sanders/i)) {
-        return just('Bernard Sanders is an American Democrat and Senator from Vermont, candidate in the 2016 US election.');
+        return just('Bernard Sanders is an American Democrat and Senator from Vermont, candidate in the 2016 US election');
+    } if (person.match(/leading republican candidate/i)) {
+        return just('Donald Trump, by 14 points, I\'m afraid');
     } else {
         return just('sorry I don\'t know');
     }
