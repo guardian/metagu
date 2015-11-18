@@ -36,6 +36,8 @@ test("give me a review of the peripheral");
 // test("give me a review of the peripheral by william gibson");
 test("give me a review of the last Chvrches album");
 test("give me a review of the last film with Daniel Craig");
+test("what do you think about the last film with george clooney");
+test("how is the last film with george clooney");
 test("do you have an ottolenghi recipe with lamb and pomegranate");
 test("do you have a nigel slater recipe with spring onion");
 test("do you have a recipe with savoy cabbage");

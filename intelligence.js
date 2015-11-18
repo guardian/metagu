@@ -52,7 +52,10 @@ export function respond(input) {
         }
     }
     // TODO: "deerhunter review"
-    if ((m = input.match(/review of (.+)/))) {
+    if ((m = input.match(/review of (.+)/)) ||
+        (m = input.match(/tell me about (.+)/)) ||
+        (m = input.match(/what do you think (?:of|about) (.+)/)) ||
+        (m = input.match(/(?:how's|how is) (.+)/))) {
         const [, what] = m;
         return lookupThing(what)
             .flatMap(entities => {
