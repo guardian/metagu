@@ -60,8 +60,8 @@ export function respond(input) {
     // TODO: "deerhunter review"
     if ((m = input.match(/review of (.+)/)) ||
         (m = input.match(/tell me about (.+)/)) ||
-        (m = input.match(/what do you think (?:of|about) (.+)/)) ||
-        (m = input.match(/(?:how's|how is) (.+)/))) {
+        (m = input.match(/what do you think (?:of|about) ([^?]+)/)) ||
+        (m = input.match(/(?:how's|how is) ([^?]+)/))) {
         const [, what] = m;
         return lookupThing(what)
             .flatMap(entities => {
@@ -89,7 +89,6 @@ export function respond(input) {
                 const contentList = response.results;
                 const bestResult = contentList[0]
                 if (bestResult) {
-                    console.log(bestResult)
                     const {webTitle, webUrl, fields} = bestResult;
                     const {starRating} = fields || {};
                     const rating = starRating ? `${starRating}/5 ` : '';
