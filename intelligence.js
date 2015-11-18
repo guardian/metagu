@@ -72,7 +72,8 @@ export function respond(input) {
                     }[bestEntity.kind] || [];
                     return findContent({
                         tag: ['tone/reviews'].concat(extraTagFilter).join(','),
-                        q: quote(entities[0].name)
+                        q: quote(entities[0].name),
+                        'show-fields': 'starRating'
                     });
                 } else {
                     // ???
@@ -82,8 +83,13 @@ export function respond(input) {
                 const contentList = response.results;
                 const bestResult = contentList[0]
                 if (bestResult) {
-                    const {webTitle, webUrl} = bestResult;
-                    return twitterLength(webTitle, webUrl);
+                    console.log(bestResult)
+                    const {webTitle, webUrl, fields} = bestResult;
+                    const {starRating} = fields || {};
+                    const rating = starRating ? `${starRating}/5 ` : '';
+                    const title = webTitle.replace(/( review)? [-–—]/, ' -');
+                    const text = rating + title;
+                    return twitterLength(text, webUrl);
                 } else {
                     // FIXME: nothing found
                     return 'sorry, I couldn\'t find anything for you'
