@@ -41,6 +41,7 @@ test("how is the last film with george clooney");
 test("do you have an ottolenghi recipe with lamb and pomegranate");
 test("do you have a nigel slater recipe with spring onion");
 test("do you have a recipe with savoy cabbage");
+test("do you have a miers recipe with prawns and chilli?");
 test("who is bernie sanders?");
 test("what is daesh?");
 test("uh");

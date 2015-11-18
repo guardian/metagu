@@ -150,19 +150,28 @@ function choose(options) {
     return options[randIndex];
 }
 
+
+function byteCount(s) {
+    return encodeURI(s).split(/%..|./).length - 1;
+}
+
 function ellipsise(text, maxLen) {
-    if (text.length <= maxLen) {
+    if (byteCount(text) <= maxLen) {
         return text;
     } else {
+        // Hacky way to cut off enough utf-8 chars, since slice doesn't know utf-8
+        const brutalUtf8Diff = byteCount(text) - text.length;
         // FIXME: cut whitespace, not words
-        const maxText = text.slice(0, maxLen - 1);
+        const maxText = text.slice(0, maxLen - 1 - brutalUtf8Diff);
         return `${maxText}…`;
     }
 }
+
+const TWEET_LENGTH = 140;
+const URI_LENGTH = 22;
+
 function twitterLength(text, uri) {
     if (uri) {
-        const TWEET_LENGTH = 140;
-        const URI_LENGTH = 22;
         const maxTextLen = TWEET_LENGTH - URI_LENGTH - 1;
         const abbrevText = ellipsise(text, maxTextLen);
         return `${abbrevText} ${uri}`;
@@ -170,6 +179,7 @@ function twitterLength(text, uri) {
         return ellipsise(text, TWEET_LENGTH);
     }
 }
+
 
 function explainConcept(concept) {
     // TODO: lookup in concept store
