@@ -1,6 +1,7 @@
 import Stream from 'user-stream';
 import Rx from 'rx';
 import {readConfig} from './conf';
+import {respond} from './intelligence';
 
 const fromEvent = Rx.Observable.fromEvent;
 
@@ -24,21 +25,25 @@ const data  = fromEvent(stream, 'data');
 const error = fromEvent(stream, 'error').flatMap(Rx.Observable.throw);
 const end   = fromEvent(stream, 'end');
 
-const obs = data.merge(error).takeUntil(end).
-      do(console.log.bind(console, "TAP"));
+const obs = data.merge(error).takeUntil(end);
 
 const tweets = obs.filter(tweet => !! tweet.id_str);
 const mentions = tweets.filter(tweet => tweet.text.match(mentionPrefix));
 
-// TODO: retry after delay on 503
+// TODO: retry after delay on 503 { type: 'response', data: { code: 503 } }
 mentions.
     subscribe(tweet => {
-        console.log(tweet.user.screen_name + ": " + tweet.text);
+        const author = tweet.user.screen_name;
         const tweetContent = tweet.text.replace(mentionPrefix, '');
-        if (tweetContent.match(/hello/)) {
-            // TODO: flatmap
-            post(tweet.user.screen_name, 'hi!', tweet.id_str).subscribe()
-        }
+        const tweetId = tweet.id_str;
+        console.log(`Received from @${author}: ${tweetContent}`);
+        respond(tweetContent).
+            flatMap(reply => {
+                console.log(`Respond to @${author}: ${reply}`);
+                return post(author, reply, tweetId);
+            }).
+            // TODO: flatmap the whole stream
+            subscribe();
     }, error => {
         console.error("ERROR", error);
     });
