@@ -233,7 +233,9 @@ function rxParseXml(xmlString) {
     });
 }
 
-const DBPEDIA_SPARQL_URI = 'http://live.dbpedia.org/sparql';
+// Primary server down?
+// const DBPEDIA_SPARQL_URI = 'http://live.dbpedia.org/sparql';
+const DBPEDIA_SPARQL_URI = 'http://dbpedia-live.openlinksw.com/sparql';
 
 // function lookupPeople(people) {
 //     const normalisedPeople = escapeDoubleQuote(people.toLowerCase());
