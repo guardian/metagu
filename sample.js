@@ -46,6 +46,8 @@ test("do you have a nigel slater recipe with spring onion");
 test("do you have a recipe with savoy cabbage");
 test("do you have a miers recipe with prawns and chilli?");
 test("how do I make chocolate brownies?");
+test("give me a recipe for paella.");
+// test("give me a broccoli recipe");
 test("can I have a recipe for lemon meringue pie please");
 test("Can I see a recipe with fish?");
 test("who is bernie sanders?");

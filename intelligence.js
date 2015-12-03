@@ -102,6 +102,7 @@ export function respond(input) {
             })
         // TODO: recover
     }
+    // TODO: "a broccoli recipe"
     if ((m = input.match(/ an? (?:(.+?) )?recipe (?:with|for|of) ([^?]+)/)) ||
         (m = input.match(/()how do I make ([^?]+)/i))) {
         const [, author, ingredientsString] = m;
