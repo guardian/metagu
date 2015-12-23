@@ -485,17 +485,21 @@ function findContent(params) {
     }).map(response => JSON.parse(response.body).response);
 }
 
-function findContributors(name) {
+function findTags(name, type) {
     return rxRequest({
         uri: `${CAPI_BASE_URI}/tags`,
         qs: extend({
             'api-key': CAPI_API_KEY,
-            type: 'contributor',
+            type: type,
             q: quote(name),
             limit: 3
             // FIXME: if multiple, find most popular..?
         })
     }).map(response => JSON.parse(response.body).response);
+}
+
+function findContributors(name) {
+    return findTags(name, 'contributor');
 }
 
 
