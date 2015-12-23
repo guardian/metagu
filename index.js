@@ -65,6 +65,7 @@ function post(recipient, message, replyTweetId) {
             status: `@${recipient} ${message}`,
             in_reply_to_status_id: replyTweetId
         };
+        console.log('Posting tweet', tweet);
         twitter.postTweet(
             tweet,
             error => { observer.onError(error); observer.onCompleted(); },
