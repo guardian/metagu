@@ -31,6 +31,7 @@ export function readConfig() {
         twitterAccessTokenKey:    readKey('TWITTER_ACCESS_TOKEN_KEY'),
         twitterAccessTokenSecret: readKey('TWITTER_ACCESS_TOKEN_SECRET'),
         capiApiKey:               readKey('CAPI_API_KEY'),
-        capiBaseUri:              readKey('CAPI_BASE_URI')
+        capiBaseUri:              readKey('CAPI_BASE_URI'),
+        redisUri:                 readKey('REDIS_URL')
     };
 }
