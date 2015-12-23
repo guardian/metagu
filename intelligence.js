@@ -6,7 +6,7 @@ import extend from 'extend';
 const just = Rx.Observable.just;
 const justThrow = Rx.Observable.throw;
 
-export function respond(input) {
+export function respond(input, nickname) {
 
     // TODO: this shouldn't be necessary, could be losing real information
     input = input.

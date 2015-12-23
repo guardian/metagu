@@ -37,7 +37,7 @@ mentions.
         const tweetContent = tweet.text.replace(mentionPrefix, '');
         const tweetId = tweet.id_str;
         console.log(`Received from @${author}: ${tweetContent}`);
-        respond(tweetContent).
+        respond(tweetContent, author).
             flatMap(reply => {
                 console.log(`Respond to @${author}: ${reply}`);
                 return post(author, reply, tweetId);

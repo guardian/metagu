@@ -1,7 +1,7 @@
 import {respond} from './intelligence';
 
 function test(input) {
-    const response = respond(input);
+    const response = respond(input, 'theefer');
     response.subscribe(
         resp => {
             console.log(input);
