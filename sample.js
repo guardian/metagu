@@ -53,3 +53,6 @@ test("Can I see a recipe with fish?");
 test("who is bernie sanders?");
 test("what is daesh?");
 test("uh");
+test("subscribe to Stephen Collins cartoons");
+test("follow stuff by Cory Doctorow");
+test("let me know where there's a new andrew sparrow liveblog");

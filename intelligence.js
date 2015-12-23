@@ -3,6 +3,8 @@ import moment from 'moment';
 import request from 'request';
 import extend from 'extend';
 
+import {addFollower$} from './follow';
+
 const just = Rx.Observable.just;
 const justThrow = Rx.Observable.throw;
 
@@ -140,11 +142,23 @@ export function respond(input, nickname) {
         return explainPerson(who);
     }
 
+    // TODO: let me know when
     if ((m = input.match(/(?:follow|subscribe to) (.+)/))) {
         const [, subject] = m;
-        // TODO: parse subject, record in storage, listen to CAPI feed, post on match
-        return just(`following ${subject} isn't supported just yet, I'm afraid`);
+        return findTags(subject).flatMap(resp => {
+            const tags = resp.results;
+            if (tags.length === 0) {
+                return just(`I can't find anything about ${subject} - maybe try to clarify?`);
+            } else {
+                const mainTag = tags[0];
+                // TODO: check if similar enough to subject
+                return addFollower$(mainTag, nickname).
+                    map(`OK, you are now subscribed to ${mainTag.webTitle}`);
+            }
+        });
     }
+    // TODO: unfollow, unsubscribe, stop - as response to notif
+
     // TODO: last article/opinion piece by
     // TODO: give me something funny, sad
     // TODO: how many, facts
