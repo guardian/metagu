@@ -75,6 +75,34 @@ function post(recipient, message, replyTweetId) {
 }
 
 
+
+// TODO: Use CAPI stream
+// const capiEvents$ = ...
+// const publishingEvents$ = capiEvents$.filter(event => event.xxxx)
+// const publishedContent$ = publishingEvents$.map(event => event.content)
+
+import {getFollowers$} from './follow';
+import {getPublishedContent$} from './capi-feed';
+const publishedContent$ = getPublishedContent$();
+
+const publishedContentAndFollower$ = publishedContent$.flatMap(content => {
+    const tags = content.tags;
+    return Rx.Observable.from(tags).
+        flatMap(tag => getFollowers$(tag)).
+        distinct().
+        map(nickname => ({content, nickname}));
+});
+
+publishedContentAndFollower$.subscribe(({content, nickname}) => {
+    // TODO: give context, 'new XY'?
+    const message = `${content.webTitle} ${content.webUrl}`;
+    post(nickname, message);
+}, error => {
+    console.error("FOLLOW ERROR", error);
+});
+
+
+
 // Dummy HTTP server to keep alive on heroku
 
 import http from 'http';
