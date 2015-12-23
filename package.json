@@ -18,7 +18,7 @@
     "jspm_packages"
   ],
   "dependencies": {
-    "jspm": "^0.16.15"
+    "jspm": "^0.16.19"
   },
   "jspm": {
     "dependencies": {
