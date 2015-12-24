@@ -95,6 +95,7 @@ import {getPublishedContent$} from './capi-feed';
 const publishedContent$ = getPublishedContent$();
 
 const publishedContentAndFollower$ = publishedContent$.flatMap(content => {
+    console.log(`Content published: ${content.webTitle} - ${content.webUrl}`);
     const tags = content.tags;
     return Rx.Observable.from(tags).
         flatMap(tag => tagFollowers.get$(tag)).
