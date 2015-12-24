@@ -2,8 +2,10 @@ import redis from 'redis';
 
 export class Memory {
     constructor(server, prefix) {
+        this._server = server;
         this._prefix = prefix;
-        this._client = redis.createClient(server, {parser: 'javascript'});
+
+        this._connectionUsers = 0
     }
 
     getSet(key) {
@@ -24,12 +26,37 @@ export class Memory {
 
 
     _invoke(method, ...args) {
-        return new Promise((resolve, reject) => {
-            this._client[method](...args, function (err, resp) {
-                if (err) reject(err);
-                else resolve(resp);
+        return this._withClient(client => {
+            return new Promise((resolve, reject) => {
+                client[method](...args, function (err, resp) {
+                    if (err) reject(err);
+                    else resolve(resp);
+                });
             });
         });
+    }
+
+    _withClient(callback) {
+        // Cache client during concurrent requests to ensure no more
+        // than one connection is used
+        if (! this._client) {
+            this._client = redis.createClient(this._server, {parser: 'javascript'});
+        }
+
+        const outcome = callback(this._client);
+
+        this._connectionUsers++;
+
+        function done() {
+            this._connectionUsers--;
+            if (this._connectionUsers === 0) {
+                this._client.quit();
+                delete this._client;
+            }
+        }
+
+        outcome.then(done, done);
+        return outcome;
     }
 
     _makeKey(key) {
