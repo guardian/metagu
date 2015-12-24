@@ -106,7 +106,9 @@ const publishedContentAndFollower$ = publishedContent$.flatMap(content => {
 publishedContentAndFollower$.subscribe(({content, nickname}) => {
     // TODO: give context, 'new XY'?
     const message = `${content.webTitle} ${content.webUrl}`;
-    post(nickname, message);
+    // TODO: flatmap the whole stream
+    post(nickname, message).
+        subscribe();
 }, error => {
     console.error("FOLLOW ERROR", error);
 });
