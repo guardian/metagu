@@ -1,23 +1,18 @@
 import Rx from 'rx';
 
-import {Memory} from './memory';
+export class TagFollowers {
+    constructor(memory) {
+        this._memory = memory;
+    }
 
-// TODO: pass server in from caller so as not to depend on config
-import {readConfig} from './conf';
-const config = readConfig();
-const server = config.redisUri;
+    add$(tag, nickname) {
+        const key = `followers:${tag.id}`;
+        return Rx.Observable.fromPromise(this._memory.addToSet(key, nickname));
+    }
 
-export function addFollower$(tag, nickname) {
-    const memory = new Memory(server, 'metagu');
-    const key = `followers:${tag.id}`;
-    return Rx.Observable.fromPromise(memory.addToSet(key, nickname))
-        .finally(() => memory.close());
-}
-
-export function getFollowers$(tag) {
-    const memory = new Memory(server, 'metagu');
-    const key = `followers:${tag.id}`;
-    const followerList$ = Rx.Observable.fromPromise(memory.getSet(key));
-    return followerList$.flatMap(Rx.Observable.from)
-        .finally(() => memory.close());
+    get$(tag) {
+        const key = `followers:${tag.id}`;
+        const followerList$ = Rx.Observable.fromPromise(this._memory.getSet(key));
+        return followerList$.flatMap(Rx.Observable.from);
+    }
 }

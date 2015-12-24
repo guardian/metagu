@@ -1,7 +1,19 @@
-import {respond} from './intelligence';
+import {readConfig} from './conf';
+import {Intelligence} from './intelligence';
+import {Memory} from './memory';
+import {TagFollowers} from './follow';
+
+const config = readConfig();
+
+// TODO: memory.close() once all done
+const memory = new Memory(config.redisUri, 'metagu');
+const tagFollowers = new TagFollowers(memory);
+
+const intelligence = new Intelligence(tagFollowers);
+
 
 function test(input) {
-    const response = respond(input, 'theefer');
+    const response = intelligence.respond(input, 'theefer');
     response.subscribe(
         resp => {
             console.log(input);

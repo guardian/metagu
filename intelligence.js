@@ -3,173 +3,177 @@ import moment from 'moment';
 import request from 'request';
 import extend from 'extend';
 
-import {addFollower$} from './follow';
-
 const just = Rx.Observable.just;
 const justThrow = Rx.Observable.throw;
 
-export function respond(input, nickname) {
+export class Intelligence {
+    constructor(tagFollowers) {
+        this._tagFollowers = tagFollowers;
+    }
 
-    // TODO: this shouldn't be necessary, could be losing real information
-    input = input.
-        replace(/please/g, '').
-        replace(/.+ thanks/g, ''). // strip thanks if not on its own
-        trim();
+    respond(input, nickname) {
 
-    let m;
-    if (input.match(/^(hi|hello)\s*[!?.]*$/)) {
-        const greeting = choose([
-            'hey',
-            'heya',
-            'hey there',
-            'hi!',
-            'hello',
-        ]);
-        return just(greeting);
-    }
-    if (input.match(/^(thanks|thank you)\s*[!?.]*$/)) {
-        const nw = choose([
-            'no worries',
-            'you\'re welcome',
-            'don\'t mention it',
-            'my pleasure',
-        ]);
-        return just(nw);
-    }
-    if (input.match(/(who|what) are you/)) {
-        return just(`I'm just a little pseudo-AI bot for the Guardian. I'm still learning!`);
-    }
-    if (input.match(/who (made|created|built|invented) you/)) {
-        return just(`.@theefer created me at a Guardian hack day in November 2015`);
-    }
-    if (input.match(/what is the time/)) {
-        const now = moment();
-        const time = now.format('HH:mm');
-        return just(`it's ${time}`);
-    }
-    if (input.match(/^[-+*/0-9 ]+$/)) {
-        try {
-            const result = eval(input);
-            if (result === NaN || result === Infinity || result === -Infinity) {
-                return just('that didn\'t compute');
-            } else {
-                return just(result);
-            }
-        } catch(e) {
-            return just('oops, that wasn\'t valid math');
+        // TODO: this shouldn't be necessary, could be losing real information
+        input = input.
+            replace(/please/g, '').
+            replace(/.+ thanks/g, ''). // strip thanks if not on its own
+            trim();
+
+        let m;
+        if (input.match(/^(hi|hello)\s*[!?.]*$/)) {
+            const greeting = choose([
+                'hey',
+                'heya',
+                'hey there',
+                'hi!',
+                'hello',
+            ]);
+            return just(greeting);
         }
-    }
-    // TODO: "deerhunter review"
-    if ((m = input.match(/review of (.+)/)) ||
-        (m = input.match(/tell me about (.+)/)) ||
-        (m = input.match(/what do you think (?:of|about) ([^?]+)/)) ||
-        (m = input.match(/(?:how's|how is) ([^?]+)/))) {
-        const [, what] = m;
-        return lookupThing(what)
-            .flatMap(entities => {
-                // FIXME: filter reviewable entities (album, film, book)
-                // FIXME: pick best/first?
-                // console.log(entities)
-                const bestEntity = entities[0]
-                // TODO: filter if in headline?
-                if (bestEntity) {
-                    let extraTagFilter = {
-                        film: ['film/film'],
-                        album: ['music/music'],
-                        book: ['books/books']
-                    }[bestEntity.kind] || [];
-                    return findContent({
-                        tag: ['tone/reviews'].concat(extraTagFilter).join(','),
-                        q: quote(entities[0].name),
-                        'show-fields': 'starRating'
-                    });
+        if (input.match(/^(thanks|thank you)\s*[!?.]*$/)) {
+            const nw = choose([
+                'no worries',
+                'you\'re welcome',
+                'don\'t mention it',
+                'my pleasure',
+            ]);
+            return just(nw);
+        }
+        if (input.match(/(who|what) are you/)) {
+            return just(`I'm just a little pseudo-AI bot for the Guardian. I'm still learning!`);
+        }
+        if (input.match(/who (made|created|built|invented) you/)) {
+            return just(`.@theefer created me at a Guardian hack day in November 2015`);
+        }
+        if (input.match(/what is the time/)) {
+            const now = moment();
+            const time = now.format('HH:mm');
+            return just(`it's ${time}`);
+        }
+        if (input.match(/^[-+*/0-9 ]+$/)) {
+            try {
+                const result = eval(input);
+                if (result === NaN || result === Infinity || result === -Infinity) {
+                    return just('that didn\'t compute');
                 } else {
-                    // ???
-                    return justThrow('XXX');
+                    return just(result);
                 }
-            }).map(response => {
-                const contentList = response.results;
-                const bestResult = contentList[0]
-                if (bestResult) {
-                    const {webTitle, webUrl, fields} = bestResult;
-                    const {starRating} = fields || {};
-                    const rating = starRating ? `${starRating}/5 ` : '';
-                    const title = webTitle.replace(/( review)? [-–—]/, ' -');
-                    const text = rating + title;
-                    return twitterLength(text, webUrl);
-                } else {
-                    // FIXME: nothing found
-                    return 'sorry, I couldn\'t find anything for you'
-                }
-            })
-        // TODO: recover
-    }
-    // TODO: "a broccoli recipe"
-    if ((m = input.match(/ an? (?:(.+?) )?recipe (?:with|for|of) ([^?]+)/)) ||
-        (m = input.match(/()how do I make ([^?]+)/i))) {
-        const [, author, ingredientsString] = m;
-        const ingredients = ingredientsString.split(/(?:, +| +and +)/);
-        const contributorsReq = author ?
-              findContributors(author).map(resp => resp.results) :
-              just([]);
-        return contributorsReq
-            .flatMap(contributors => {
-                const bestContributor = contributors[0]
-                const extraTagFilter = bestContributor ? [bestContributor.id] : [];
-                return findContent({
-                    tag: ['tone/recipes'].concat(extraTagFilter).join(','),
-                    q: ingredients.map(quote).join(' AND ')
-                });
-            }).map(response => {
-                const contentList = response.results;
-                const bestResult = contentList[0]
-                if (bestResult) {
-                    const {webTitle, webUrl} = bestResult;
-                    return twitterLength(webTitle, webUrl);
-                } else {
-                    // FIXME: nothing found
-                    return `I'm afraid I didn't find any matching recipe`;
-                }
-            })
-        // TODO: recover
-    }
-    if ((m = input.match(/(?:what's|what is) (.+)/))) {
-        const [, concept] = m;
-        return explainConcept(concept);
-    }
-    if ((m = input.match(/(?:who's|who is) (.+)/))) {
-        const [, who] = m;
-        return explainPerson(who);
-    }
-
-    // TODO: let me know when
-    if ((m = input.match(/(?:follow|subscribe to) (.+)/))) {
-        const [, subject] = m;
-        return findTags(subject).flatMap(resp => {
-            const tags = resp.results;
-            if (tags.length === 0) {
-                return just(`I can't find anything about ${subject} - maybe try to clarify?`);
-            } else {
-                const mainTag = tags[0];
-                // TODO: check if similar enough to subject
-                return addFollower$(mainTag, nickname).
-                    map(`OK, you are now subscribed to ${mainTag.webTitle}`);
+            } catch(e) {
+                return just('oops, that wasn\'t valid math');
             }
-        });
+        }
+        // TODO: "deerhunter review"
+        if ((m = input.match(/review of (.+)/)) ||
+            (m = input.match(/tell me about (.+)/)) ||
+            (m = input.match(/what do you think (?:of|about) ([^?]+)/)) ||
+            (m = input.match(/(?:how's|how is) ([^?]+)/))) {
+            const [, what] = m;
+            return lookupThing(what)
+                .flatMap(entities => {
+                    // FIXME: filter reviewable entities (album, film, book)
+                    // FIXME: pick best/first?
+                    // console.log(entities)
+                    const bestEntity = entities[0]
+                    // TODO: filter if in headline?
+                    if (bestEntity) {
+                        let extraTagFilter = {
+                            film: ['film/film'],
+                            album: ['music/music'],
+                            book: ['books/books']
+                        }[bestEntity.kind] || [];
+                        return findContent({
+                            tag: ['tone/reviews'].concat(extraTagFilter).join(','),
+                            q: quote(entities[0].name),
+                            'show-fields': 'starRating'
+                        });
+                    } else {
+                        // ???
+                        return justThrow('XXX');
+                    }
+                }).map(response => {
+                    const contentList = response.results;
+                    const bestResult = contentList[0]
+                    if (bestResult) {
+                        const {webTitle, webUrl, fields} = bestResult;
+                        const {starRating} = fields || {};
+                        const rating = starRating ? `${starRating}/5 ` : '';
+                        const title = webTitle.replace(/( review)? [-–—]/, ' -');
+                        const text = rating + title;
+                        return twitterLength(text, webUrl);
+                    } else {
+                        // FIXME: nothing found
+                        return 'sorry, I couldn\'t find anything for you'
+                    }
+                })
+            // TODO: recover
+        }
+        // TODO: "a broccoli recipe"
+        if ((m = input.match(/ an? (?:(.+?) )?recipe (?:with|for|of) ([^?]+)/)) ||
+            (m = input.match(/()how do I make ([^?]+)/i))) {
+            const [, author, ingredientsString] = m;
+            const ingredients = ingredientsString.split(/(?:, +| +and +)/);
+            const contributorsReq = author ?
+                  findContributors(author).map(resp => resp.results) :
+                just([]);
+            return contributorsReq
+                .flatMap(contributors => {
+                    const bestContributor = contributors[0]
+                    const extraTagFilter = bestContributor ? [bestContributor.id] : [];
+                    return findContent({
+                        tag: ['tone/recipes'].concat(extraTagFilter).join(','),
+                        q: ingredients.map(quote).join(' AND ')
+                    });
+                }).map(response => {
+                    const contentList = response.results;
+                    const bestResult = contentList[0]
+                    if (bestResult) {
+                        const {webTitle, webUrl} = bestResult;
+                        return twitterLength(webTitle, webUrl);
+                    } else {
+                        // FIXME: nothing found
+                        return `I'm afraid I didn't find any matching recipe`;
+                    }
+                })
+            // TODO: recover
+        }
+        if ((m = input.match(/(?:what's|what is) (.+)/))) {
+            const [, concept] = m;
+            return explainConcept(concept);
+        }
+        if ((m = input.match(/(?:who's|who is) (.+)/))) {
+            const [, who] = m;
+            return explainPerson(who);
+        }
+
+        // TODO: let me know when
+        if ((m = input.match(/(?:follow|subscribe to) (.+)/))) {
+            const [, subject] = m;
+            return findTags(subject).flatMap(resp => {
+                const tags = resp.results;
+                if (tags.length === 0) {
+                    return just(`I can't find anything about ${subject} - maybe try to clarify?`);
+                } else {
+                    const mainTag = tags[0];
+                    // TODO: check if similar enough to subject
+                    return this._tagFollowers.add$(mainTag, nickname).
+                        map(`OK, you are now subscribed to ${mainTag.webTitle}`);
+                }
+            });
+        }
+        // TODO: unfollow, unsubscribe, stop - as response to notif
+
+        // TODO: last article/opinion piece by
+        // TODO: give me something funny, sad
+        // TODO: how many, facts
+        // TODO: follow, subscribe
+
+        // TODO: here for fun or business? more browsing
+
+        // TODO: spontaneous: reply to tweet about X, Y
+        // TODO: spontaneous: tweet if following @artist
+
+        return just('sorry, I didn\'t get that');
     }
-    // TODO: unfollow, unsubscribe, stop - as response to notif
-
-    // TODO: last article/opinion piece by
-    // TODO: give me something funny, sad
-    // TODO: how many, facts
-    // TODO: follow, subscribe
-
-    // TODO: here for fun or business? more browsing
-
-    // TODO: spontaneous: reply to tweet about X, Y
-    // TODO: spontaneous: tweet if following @artist
-
-    return just('sorry, I didn\'t get that');
 }
 
 function choose(options) {

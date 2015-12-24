@@ -1,11 +1,21 @@
 import Stream from 'user-stream';
 import Rx from 'rx';
 import {readConfig} from './conf';
-import {respond} from './intelligence';
 
 const fromEvent = Rx.Observable.fromEvent;
 
 const config = readConfig();
+
+
+import {Intelligence} from './intelligence';
+import {Memory} from './memory';
+import {TagFollowers} from './follow';
+
+const memory = new Memory(config.redisUri, 'metagu');
+const tagFollowers = new TagFollowers(memory);
+
+const intelligence = new Intelligence(tagFollowers);
+
 
 const stream = new Stream({
     consumer_key:        config.twitterConsumerKey,
@@ -37,7 +47,7 @@ mentions.
         const tweetContent = tweet.text.replace(mentionPrefix, '');
         const tweetId = tweet.id_str;
         console.log(`Received from @${author}: ${tweetContent}`);
-        respond(tweetContent, author).
+        intelligence.respond(tweetContent, author).
             flatMap(reply => {
                 console.log(`Respond to @${author}: ${reply}`);
                 return post(author, reply, tweetId);
@@ -81,14 +91,14 @@ function post(recipient, message, replyTweetId) {
 // const publishingEvents$ = capiEvents$.filter(event => event.xxxx)
 // const publishedContent$ = publishingEvents$.map(event => event.content)
 
-import {getFollowers$} from './follow';
 import {getPublishedContent$} from './capi-feed';
+
 const publishedContent$ = getPublishedContent$();
 
 const publishedContentAndFollower$ = publishedContent$.flatMap(content => {
     const tags = content.tags;
     return Rx.Observable.from(tags).
-        flatMap(tag => getFollowers$(tag)).
+        flatMap(tag => tagFollowers.get$(tag)).
         distinct().
         map(nickname => ({content, nickname}));
 });
